@@ -268,8 +268,9 @@ fun NuevoReporteScreen(
                             atendidoPor = "",
                             atendidoPorUid = "",
                             fotoUri = fotoUri,
-                            fotoBitmap = fotoBitmap
-                        )
+                        ).apply {
+                            this.fotoBitmap = fotoBitmap // Usamos la variable de estado
+                        }
 
                         continuar(nuevoReporte)
                     }

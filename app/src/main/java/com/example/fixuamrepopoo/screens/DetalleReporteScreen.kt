@@ -17,8 +17,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-import com.example.fixuamrepopoo.screens.Reporte
-
 import com.example.fixuamrepopoo.ui.theme.ColorGrisTexto
 import com.example.fixuamrepopoo.ui.theme.ColorPrincipal
 import com.example.fixuamrepopoo.ui.theme.ColorTexto
@@ -129,11 +127,10 @@ fun DetalleReporteScreen(
                     }
                 )
 
-                if (reporte?.fotoBitmap != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
-
+                // Acá está corregido, un solo bloque limpio y validando nulos correctamente
+                reporte?.fotoBitmap?.let { bitmapSeguro ->
                     Image(
-                        bitmap = reporte.fotoBitmap.asImageBitmap(),
+                        bitmap = bitmapSeguro.asImageBitmap(),
                         contentDescription = "Foto tomada del problema",
                         modifier = Modifier
                             .fillMaxWidth()
