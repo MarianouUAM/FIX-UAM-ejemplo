@@ -42,6 +42,9 @@ import com.example.fixuamrepopoo.ui.theme.ColorTexto
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 
 @Composable
 fun NuevoReporteScreen(
@@ -73,6 +76,23 @@ fun NuevoReporteScreen(
             fotoBitmap = bitmap
             fotoUri = ""
             error = ""
+        }
+    }
+    fun abrirCamaraSeguro() {
+        try {
+            tomarFotoCamara.launch(null)
+        } catch (e: Exception) {
+            error = "No se pudo abrir la cámara."
+        }
+    }
+
+    val permisoCamaraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { permisoConcedido ->
+        if (permisoConcedido) {
+            abrirCamaraSeguro()
+        } else {
+            error = "Se necesita permiso de cámara para tomar la foto."
         }
     }
 
@@ -223,7 +243,16 @@ fun NuevoReporteScreen(
                 BotonPrincipal(
                     texto = "Tomar foto",
                     onClick = {
-                        tomarFotoCamara.launch(null)
+                        val permiso = ContextCompat.checkSelfPermission(
+                            contexto,
+                            Manifest.permission.CAMERA
+                        )
+
+                        if (permiso == PackageManager.PERMISSION_GRANTED) {
+                            abrirCamaraSeguro()
+                        } else {
+                            permisoCamaraLauncher.launch(Manifest.permission.CAMERA)
+                        }
                     }
                 )
 

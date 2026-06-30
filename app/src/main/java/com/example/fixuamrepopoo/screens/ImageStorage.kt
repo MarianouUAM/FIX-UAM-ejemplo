@@ -80,7 +80,7 @@ object ImagenStorage {
         }
     }
 
-    private fun crearArchivoImagen(context: Context): File {
+    private fun crearArchivoImagen(context: Context):  File {
         val directorio = File(context.filesDir, CARPETA_REPORTES)
 
         if (!directorio.exists()) {
