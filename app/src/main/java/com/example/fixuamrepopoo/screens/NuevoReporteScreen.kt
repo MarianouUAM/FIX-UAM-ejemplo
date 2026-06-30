@@ -1,5 +1,6 @@
 package com.example.fixuamrepopoo.screens
 
+import androidx.compose.ui.platform.LocalContext
 import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -53,6 +54,7 @@ fun NuevoReporteScreen(
     var fotoUri by remember { mutableStateOf("") }
     var fotoBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var error by remember { mutableStateOf("") }
+    val contexto = LocalContext.current
 
     val selectorFotoGaleria = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -197,12 +199,18 @@ fun NuevoReporteScreen(
                     }
                 )
 
-                if (fotoBitmap != null) {
+                val bitmapVistaPrevia = when {
+                    fotoBitmap != null -> fotoBitmap
+                    fotoUri.isNotBlank() -> ImagenStorage.cargarBitmap(contexto, fotoUri)
+                    else -> null
+                }
+
+                if (bitmapVistaPrevia != null) {
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Image(
-                        bitmap = fotoBitmap!!.asImageBitmap(),
-                        contentDescription = "Foto tomada",
+                        bitmap = bitmapVistaPrevia.asImageBitmap(),
+                        contentDescription = "Foto del problema",
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(180.dp),
@@ -257,6 +265,12 @@ fun NuevoReporteScreen(
                             Locale.getDefault()
                         ).format(Date())
 
+                        val rutaFotoGuardada = when
+                        {
+                            fotoBitmap != null -> ImagenStorage.guardarBitmap(contexto, fotoBitmap!!)
+                            fotoUri.isNotBlank() -> ImagenStorage.copiarImagenDesdeUri(contexto, fotoUri)
+                            else -> ""
+                        }
                         val nuevoReporte = Reporte(
                             id = (System.currentTimeMillis() % 1000000).toInt(),
                             tipo = tipoSeleccionado,
@@ -267,11 +281,8 @@ fun NuevoReporteScreen(
                             estado = "Pendiente",
                             atendidoPor = "",
                             atendidoPorUid = "",
-                            fotoUri = fotoUri,
-                        ).apply {
-                            this.fotoBitmap = fotoBitmap // Usamos la variable de estado
-                        }
-
+                            fotoUri = rutaFotoGuardada,
+                        )
                         continuar(nuevoReporte)
                     }
                 }

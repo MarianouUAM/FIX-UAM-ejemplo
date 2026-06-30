@@ -16,6 +16,9 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.platform.LocalContext
 
 import com.example.fixuamrepopoo.ui.theme.ColorGrisTexto
 import com.example.fixuamrepopoo.ui.theme.ColorPrincipal
@@ -27,11 +30,14 @@ fun DetalleReporteScreen(
     volver: () -> Unit,
     enviarReporte: () -> Unit
 ) {
+    val contexto = LocalContext.current
+    val fotoGuardada = reporte?.fotoUri?.let { ImagenStorage.cargarBitmap(contexto, it) }
     FondoPrincipal {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(22.dp)
+                .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(26.dp))
 
@@ -109,23 +115,31 @@ fun DetalleReporteScreen(
                 )
 
                 Text(
-                    text = if (
-                        reporte?.fotoUri?.isNotBlank() == true ||
-                        reporte?.fotoBitmap != null
-                    ) {
+                    text = if (reporte?.fotoUri?.isNotBlank() == true) {
                         "Sí, el reporte incluye una foto del problema."
                     } else {
                         "No se adjuntó foto."
                     },
-                    color = if (
-                        reporte?.fotoUri?.isNotBlank() == true ||
-                        reporte?.fotoBitmap != null
-                    ) {
+                    color = if (reporte?.fotoUri?.isNotBlank() == true) {
                         ColorPrincipal
                     } else {
                         ColorGrisTexto
                     }
                 )
+
+                if (fotoGuardada != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Image(
+                        bitmap = fotoGuardada.asImageBitmap(),
+                        contentDescription = "Foto tomada del problema",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
 
                 // Acá está corregido, un solo bloque limpio y validando nulos correctamente
                 reporte?.fotoBitmap?.let { bitmapSeguro ->

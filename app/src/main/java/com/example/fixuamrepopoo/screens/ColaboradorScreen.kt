@@ -33,6 +33,11 @@ import androidx.compose.ui.unit.sp
 import com.example.fixuamrepopoo.ui.theme.ColorGrisTexto
 import com.example.fixuamrepopoo.ui.theme.ColorPrincipal
 import com.example.fixuamrepopoo.ui.theme.ColorTexto
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.window.Dialog
 
 @Composable
 fun ColaboradorScreen(
@@ -265,6 +270,64 @@ fun TarjetaReporteColaborador(
     textoBoton: String?,
     onClickBoton: (() -> Unit)?
 ) {
+    val contexto = LocalContext.current
+    var mostrarImagen by remember { mutableStateOf(false) }
+    val imagenReporte = remember(reporte.fotoUri, mostrarImagen) {
+        ImagenStorage.cargarBitmap(contexto, reporte.fotoUri)
+    }
+
+    if (mostrarImagen) {
+        Dialog(
+            onDismissRequest = {
+                mostrarImagen = false
+            }
+        ) {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp)
+                ) {
+                    Text(
+                        text = "Imagen del reporte",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorTexto
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (imagenReporte != null) {
+                        Image(
+                            bitmap = imagenReporte.asImageBitmap(),
+                            contentDescription = "Imagen adjunta al reporte",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(360.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        Text(
+                            text = "No se pudo abrir la imagen guardada en este reporte.",
+                            color = ColorGrisTexto
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    BotonOscuro(
+                        texto = "Cerrar",
+                        onClick = {
+                            mostrarImagen = false
+                        }
+                    )
+                }
+            }
+        }
+    }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -349,7 +412,29 @@ fun TarjetaReporteColaborador(
             )
 
             Spacer(modifier = Modifier.height(20.dp))
+            if (reporte.fotoUri.isNotBlank()) {
+                Button(
+                    onClick = {
+                        mostrarImagen = true
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = ColorTexto,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        text = "Ver imagen",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
+                Spacer(modifier = Modifier.height(10.dp))
+            }
             if (textoBoton != null && onClickBoton != null) {
                 Button(
                     onClick = onClickBoton,

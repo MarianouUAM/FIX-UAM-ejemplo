@@ -124,6 +124,7 @@ fun AppNavigation() {
                     eliminarReporte = { id ->
                         val reporte = reportes.find { it.id == id }
                         if (reporte != null) {
+                            ImagenStorage.eliminarImagenSiEsInterna(contexto, reporte.fotoUri)
                             scope.launch { reporteDao.eliminarReporte(reporte) }
                         }
                     }
@@ -196,7 +197,7 @@ fun AppNavigation() {
                     cancelarReporte = { id ->
                         val reporte = reportes.find { it.id == id }
                         if (reporte != null) {
-                            // BORRAR REAL EN ROOM
+                            ImagenStorage.eliminarImagenSiEsInterna(contexto, reporte.fotoUri)
                             scope.launch {
                                 reporteDao.eliminarReporte(reporte)
                                 pantallaActual = "mis_reportes"
