@@ -9,12 +9,12 @@ plugins {
 android {
     namespace = "com.example.fixuamrepopoo"
 
-    compileSdk = 34 // Ajustado a la versión estable actual
+    compileSdk = 36 // Ajustado a la versión estable actual
 
     defaultConfig {
         applicationId = "com.example.fixuamrepopoo"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -32,7 +32,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-    
+
 }
 
 dependencies {
