@@ -162,7 +162,7 @@ fun DashboardScreen(
                     tasaResolucion = tasaResolucion
                 )
             }
-            
+
             item {
                 TabsDashboard(
                     pestanaActual = pestanaActual,
