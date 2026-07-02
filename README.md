@@ -24,7 +24,7 @@ FixUAM es una aplicación móvil desarrollada en **Kotlin** con **Jetpack Compos
 
 ## Vista general del proyecto
 
-**FixUAM** nace como una solución para mejorar la comunicación entre los docentes de la UAM y la Dirección Tecnológica.
+**FixUAM** Nace como una solución para mejorar la comunicación entre los docentes de la UAM y la Dirección Tecnológica.
 
 En muchas ocasiones, cuando ocurre una falla tecnológica en el aula, el docente debe llamar, escribir a alguien de soporte o buscar ayuda de manera informal. Esto puede provocar retrasos, desorden en la atención y pérdida de tiempo durante la clase.
 
