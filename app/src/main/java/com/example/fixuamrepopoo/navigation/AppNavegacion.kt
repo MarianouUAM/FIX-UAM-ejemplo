@@ -157,21 +157,97 @@ fun AppNavigation() {
                     }
                 )
 
-                "detalle_reporte" -> DetalleReporteScreen(
-                    reporte = reporteTemporal,
-                    volver = { pantallaActual = "nuevo_reporte" },
-                    enviarReporte = {
-                        reporteTemporal?.let { reporte ->
-                            // --- GUARDAR EN FIREBASE ---
-                            db.collection("reportes")
-                                .add(reporte)
-                                .addOnSuccessListener {
-                                    reporteTemporal = null
-                                    pantallaActual = "confirmacion"
+                "detalle_reporte" -> {
+                    // 1. Sacamos el contexto de la app para poder mostrar el mensajito flotante (Toast)
+                    val contexto = androidx.compose.ui.platform.LocalContext.current
+
+                    DetalleReporteScreen(
+                        reporte = reporteTemporal,
+                        volver = { pantallaActual = "nuevo_reporte" },
+                        enviarReporte = {
+                            reporteTemporal?.let { reporte ->
+                                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+
+                                // --- MAGIA BASE64: Convertimos la foto a texto ---
+                                fun convertirFotoATexto(ruta: String): String {
+                                    if (ruta.isBlank()) return ""
+                                    return try {
+                                        val bitmap = android.graphics.BitmapFactory.decodeFile(ruta)
+                                        val outputStream = java.io.ByteArrayOutputStream()
+
+                                        // Comprimimos la foto al 20%
+                                        bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 20, outputStream)
+                                        val byteArray = outputStream.toByteArray()
+
+                                        // La transformamos en texto
+                                        android.util.Base64.encodeToString(byteArray, android.util.Base64.DEFAULT)
+                                    } catch (e: Exception) {
+                                        "" // Si hay error, se va vacía para no trabar la app
+                                    }
                                 }
+
+                                val fotoEnTexto = convertirFotoATexto(reporte.fotoUri)
+
+                                // Armamos el paquete de datos limpio
+                                val reporteParaFirebase = hashMapOf(
+                                    "id" to reporte.id,
+                                    "docenteUid" to reporte.docenteUid,
+                                    "docente" to reporte.docente,
+                                    "tipo" to reporte.tipo,
+                                    "aula" to reporte.aula,
+                                    "descripcion" to reporte.descripcion,
+                                    "fecha" to reporte.fecha,
+                                    "prioridad" to reporte.prioridad,
+                                    "estado" to reporte.estado,
+                                    "atendidoPor" to reporte.atendidoPor,
+                                    "atendidoPorUid" to reporte.atendidoPorUid,
+                                    "fotoUri" to fotoEnTexto // ¡Aquí va la foto disfrazada de texto!
+                                )
+
+                                // 2. Lo mandamos a la nube de Firebase
+                                db.collection("reportes")
+                                    .add(reporteParaFirebase)
+                                    .addOnSuccessListener {
+                                        val sharedPref = contexto.getSharedPreferences("cache_reportes", android.content.Context.MODE_PRIVATE)
+                                        val gson = com.google.gson.Gson()
+
+                                        // Obtenemos los que ya existen
+                                        val json = sharedPref.getString("lista", "[]")
+                                        val listaCache = gson.fromJson(json, object : com.google.common.reflect.TypeToken<MutableList<Reporte>>() {}.type) ?: mutableListOf<Reporte>()
+
+                                        // Agregamos el nuevo y mantenemos solo los últimos 5
+                                        listaCache.add(0, reporte)
+                                        if (listaCache.size > 5) listaCache.removeAt(listaCache.size - 1)
+
+                                        // Guardamos de vuelta
+                                        sharedPref.edit().putString("lista", gson.toJson(listaCache)).apply()
+
+                                        pantallaActual = "confirmacion"
+                                        // 3. ¡AQUÍ ESTÁ EL TEXTO DE CONFIRMACIÓN!
+                                        // Sale el mensajito flotante diciendo que se mandó con éxito
+                                        android.widget.Toast.makeText(
+                                            contexto,
+                                            "¡Reporte enviado exitosamente a la nube!",
+                                            android.widget.Toast.LENGTH_LONG
+                                        ).show()
+
+                                        // Limpiamos la variable y pasamos a la pantalla de confirmación o inicio
+                                        reporteTemporal = null
+                                        pantallaActual = "confirmacion"
+                                    }
+                                    .addOnFailureListener {
+                                        // Si por casualidad falla el internet, le avisa al usuario
+                                        android.widget.Toast.makeText(
+                                            contexto,
+                                            "Error al enviar el reporte. Revisá tu internet.",
+                                            android.widget.Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+
+                            }
                         }
-                    }
-                )
+                    )
+                }
 
                 "confirmacion" -> ConfirmacionScreen(
                     irInicio = { pantallaActual = "inicio_docente" },
@@ -179,6 +255,7 @@ fun AppNavigation() {
                 )
 
                 "mis_reportes" -> MisReportesScreen(
+                    // Filtramos la lista de Firebase en tiempo real
                     reportes = reportes.filter { it.docenteUid == usuarioActualUid },
                     volver = { pantallaActual = "inicio_docente" },
                     irDetalleEstado = { id ->

@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -75,6 +76,14 @@ fun DashboardScreen(
     onNavigateToInicio: () -> Unit,
     eliminarReporte: (Int) -> Unit = {}
 ) {
+    var filtroAula by remember { mutableStateOf("") }
+    var filtroTipo by remember { mutableStateOf("") }
+
+    // Esta lista cambia automáticamente si escribís en las cajitas de texto
+    val reportesFiltrados = reportes.filter {
+        (filtroAula.isBlank() || it.aula.contains(filtroAula, ignoreCase = true)) &&
+                (filtroTipo.isBlank() || it.tipo.contains(filtroTipo, ignoreCase = true))
+    }
     var pestanaActual by remember { mutableStateOf("resumen") }
 
     val reportesVisibles = reportes.sortedByDescending { it.id }
@@ -128,6 +137,15 @@ fun DashboardScreen(
     val reportesRecientes = reportesVisibles.take(6)
 
     FondoPrincipal {
+        // Estados para filtros
+        var filtroAula by remember { mutableStateOf("") }
+        var filtroTipo by remember { mutableStateOf("") }
+
+// Lógica de filtrado
+        val reportesFiltrados = reportes.filter {
+            (filtroAula.isBlank() || it.aula.contains(filtroAula, ignoreCase = true)) &&
+                    (filtroTipo.isBlank() || it.tipo == filtroTipo)
+        }
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -144,7 +162,7 @@ fun DashboardScreen(
                     tasaResolucion = tasaResolucion
                 )
             }
-
+            
             item {
                 TabsDashboard(
                     pestanaActual = pestanaActual,
