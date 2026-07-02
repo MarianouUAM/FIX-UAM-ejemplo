@@ -1,15 +1,11 @@
 package com.example.fixuamrepopoo.screens
 
 import android.graphics.Bitmap
-import androidx.room.Entity
-import androidx.room.Ignore
-import androidx.room.PrimaryKey
+import com.google.firebase.firestore.Exclude
 
-@Entity(tableName = "reportes")
 data class Reporte(
-    @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val firestoreId: String = "",
+    var firestoreId: String = "", // Cambiado a var para que Firebase le asigne el suyo
     val docenteUid: String = "",
     val docente: String = "",
     val tipo: String = "",
@@ -22,8 +18,7 @@ data class Reporte(
     val atendidoPorUid: String = "",
     val fotoUri: String = ""
 ) {
-    // Al ponerlo aquí adentro, Room lo ignora felizmente
-    // y Kotlin ya no lo exige para construir el objeto.
-    @Ignore
+    // Firebase ignorará esto gracias al @get:Exclude
+    @get:Exclude
     var fotoBitmap: Bitmap? = null
 }

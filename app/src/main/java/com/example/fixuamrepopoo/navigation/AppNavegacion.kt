@@ -10,28 +10,37 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.collectAsState
+import com.google.firebase.firestore.FirebaseFirestore // <-- IMPORTANTE: Librería de Firebase
 
 import com.example.fixuamrepopoo.screens.*
 import com.example.fixuamrepopoo.ui.theme.ConfiguracionTema
 import com.example.fixuamrepopoo.ui.theme.LocalConfiguracionTema
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AppNavigation() {
-
-    // --- CONFIGURACIÓN DE ROOM ---
-    val api = remember { RetrofitCliente.api }
     val contexto = LocalContext.current
-    val baseDatos = remember { BaseDatosApp.obtenerBaseDatos(contexto) }
-    val reporteDao = baseDatos.reporteDao()
-    val scope = rememberCoroutineScope() // Para ejecutar acciones en 2do plano sin congelar la app
 
-    // Escuchamos la base de datos en tiempo real.
-    // Si hay un cambio en SQL, la lista 'reportes' se actualiza sola.
-    val reportes by reporteDao.obtenerTodosLosReportes().collectAsState(initial = emptyList())
-    // -----------------------------
+    // --- CONEXIÓN DIRECTA A FIREBASE ---
+    val db = FirebaseFirestore.getInstance()
+    var reportes by remember { mutableStateOf(emptyList<Reporte>()) }
+
+    // Escuchador en tiempo real: Cualquier cambio en la nube se refleja al instante
+    DisposableEffect(Unit) {
+        val listener = db.collection("reportes")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) return@addSnapshotListener
+                if (snapshot != null) {
+                    val listaFirebase = snapshot.documents.mapNotNull { doc ->
+                        val reporte = doc.toObject(Reporte::class.java)
+                        reporte?.apply { firestoreId = doc.id } // Guardamos el ID único del documento
+                    }
+                    reportes = listaFirebase
+                }
+            }
+        onDispose { listener.remove() } // Se limpia para no gastar memoria
+    }
+    // -----------------------------------
 
     var pantallaActual by remember { mutableStateOf("login") }
     var rolSeleccionado by remember { mutableStateOf("") }
@@ -51,8 +60,6 @@ fun AppNavigation() {
             else -> "login"
         }
     }
-
-
 
     fun cerrarSesionCompleta() {
         usuarioActual = ""
@@ -84,7 +91,6 @@ fun AppNavigation() {
         ) { pantalla ->
 
             when (pantalla) {
-
                 "login" -> LoginScreen(
                     seleccionarRol = { rol ->
                         rolSeleccionado = rol
@@ -96,7 +102,6 @@ fun AppNavigation() {
                     rol = rolSeleccionado,
                     volver = { pantallaActual = "login" },
                     ingresar = { correo, contrasena, mostrarError ->
-                        // Sigue siendo simulado por ahora (luego conectaremos esto a la API)
                         usuarioActual = "Docente Prueba"
                         usuarioActualUid = "uid_simulado_123"
                         irPantallaPrincipalPorRol(rolSeleccionado)
@@ -123,11 +128,13 @@ fun AppNavigation() {
                     onNavigateToInicio = { pantallaActual = "dashboard" },
                     eliminarReporte = { id ->
                         val reporte = reportes.find { it.id == id }
-                        if (reporte != null) {
+                        if (reporte != null && reporte.firestoreId.isNotEmpty()) {
+                            db.collection("reportes").document(reporte.firestoreId).delete()
                             ImagenStorage.eliminarImagenSiEsInterna(contexto, reporte.fotoUri)
-                            scope.launch { reporteDao.eliminarReporte(reporte) }
                         }
                     }
+                    // NOTA: Si en tu DashboardScreen.kt viejo tenías el parámetro "reporteDao",
+                    // tenés que quitárselo de allá también para que compile sin errores.
                 )
 
                 "inicio_docente" -> InicioDocenteScreen(
@@ -155,24 +162,13 @@ fun AppNavigation() {
                     volver = { pantallaActual = "nuevo_reporte" },
                     enviarReporte = {
                         reporteTemporal?.let { reporte ->
-                            scope.launch {
-                                try {
-                                    // 1. Intentamos enviar al servidor de Python (si está prendido)
-                                    RetrofitCliente.api.crearReporte(reporte)
-
-                                    // 2. Si el servidor respondió bien, guardamos en Room
-                                    reporteDao.insertarReporte(reporte)
-
-                                    reporteTemporal = null
-                                    pantallaActual = "confirmacion"
-                                } catch (e: Exception) {
-                                    // 3. Si el servidor está apagado o falla, guardamos en Room localmente
-                                    // para que el trabajo del estudiante no se pierda.
-                                    reporteDao.insertarReporte(reporte)
+                            // --- GUARDAR EN FIREBASE ---
+                            db.collection("reportes")
+                                .add(reporte)
+                                .addOnSuccessListener {
                                     reporteTemporal = null
                                     pantallaActual = "confirmacion"
                                 }
-                            }
                         }
                     }
                 )
@@ -196,12 +192,10 @@ fun AppNavigation() {
                     volver = { pantallaActual = "mis_reportes" },
                     cancelarReporte = { id ->
                         val reporte = reportes.find { it.id == id }
-                        if (reporte != null) {
+                        if (reporte != null && reporte.firestoreId.isNotEmpty()) {
+                            db.collection("reportes").document(reporte.firestoreId).delete()
+                                .addOnSuccessListener { pantallaActual = "mis_reportes" }
                             ImagenStorage.eliminarImagenSiEsInterna(contexto, reporte.fotoUri)
-                            scope.launch {
-                                reporteDao.eliminarReporte(reporte)
-                                pantallaActual = "mis_reportes"
-                            }
                         } else {
                             pantallaActual = "mis_reportes"
                         }
@@ -219,26 +213,22 @@ fun AppNavigation() {
                     colaboradorUid = usuarioActualUid,
                     tomarReporte = { id ->
                         val reporte = reportes.find { it.id == id }
-                        if (reporte != null) {
-                            // ACTUALIZAR REAL EN ROOM
-                            scope.launch {
-                                reporteDao.actualizarReporte(
-                                    reporte.copy(
-                                        estado = "En proceso",
-                                        atendidoPor = usuarioActual.ifBlank { "Soporte UAM" },
-                                        atendidoPorUid = usuarioActualUid
-                                    )
+                        if (reporte != null && reporte.firestoreId.isNotEmpty()) {
+                            // --- ACTUALIZAR EN FIREBASE ---
+                            db.collection("reportes").document(reporte.firestoreId)
+                                .update(
+                                    "estado", "En proceso",
+                                    "atendidoPor", usuarioActual.ifBlank { "Soporte UAM" },
+                                    "atendidoPorUid", usuarioActualUid
                                 )
-                            }
                         }
                     },
                     resolverReporte = { id ->
                         val reporte = reportes.find { it.id == id }
-                        if (reporte != null) {
-                            // ACTUALIZAR REAL EN ROOM
-                            scope.launch {
-                                reporteDao.actualizarReporte(reporte.copy(estado = "Resuelto"))
-                            }
+                        if (reporte != null && reporte.firestoreId.isNotEmpty()) {
+                            // --- RESOLVER EN FIREBASE ---
+                            db.collection("reportes").document(reporte.firestoreId)
+                                .update("estado", "Resuelto")
                         }
                     },
                     cerrarSesion = { cerrarSesionCompleta() }

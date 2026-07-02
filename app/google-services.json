@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "514079216842",
-    "project_id": "fixuam",
-    "storage_bucket": "fixuam.firebasestorage.app"
+    "project_number": "1037603128028",
+    "project_id": "fixuam-a2492",
+    "storage_bucket": "fixuam-a2492.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:514079216842:android:41196d199e122d42ca1033",
+        "mobilesdk_app_id": "1:1037603128028:android:87ddb93988ab0534e4ea19",
         "android_client_info": {
           "package_name": "com.example.fixuamrepopoo"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCoKGCiAR49Mr70ivYrd0lWtKLvbmgs534"
+          "current_key": "AIzaSyBJowwY9VlkCNmn-rhApAsFlMWixfwWdBA"
         }
       ],
       "services": {
